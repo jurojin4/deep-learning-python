@@ -46,8 +46,8 @@ predicted label as the best one).
 <li>4. Save the best one and repeat the method until the sorting is complete.
 </ul>
 <figure style="text-align: center;">
-  <img src="./plots/before_nms.png" width="46%">
-  <img src="./plots/after_nms.png"  width="45%">
+  <img src="./plots/before_nms.png" width="36%">
+  <img src="./plots/after_nms.png"  width="35%">
   <figcaption style="font-family: Arial, sans-serif; font-weight: bold;">
     <u>Before NMS &nbsp;&nbsp;|&nbsp;&nbsp; After NMS</u>
   </figcaption>
@@ -59,12 +59,14 @@ backbone (detailed can be seen in the drawing). Then, the model head is a MLP (f
 that the activation function for all layers, except the final one, is **Leaky ReLU** (Rectified Linear Unit) with 0.1
 as the coefficient.
 
-$$\mathbf{LeakyReLU_{\alpha}: x \longmapsto \left\{
+$$
+\mathbf{LeakyReLU_{\alpha}: x \longmapsto \left\{
     \begin{array}{rcl}
        \alpha.x & \text{\ \ \ if \ } x < 0 \\
 		x & \text{ \ \ \ otherwise}
         & 
     \end{array}\right.}
+}
 $$
 
 <tr>
@@ -84,7 +86,7 @@ The loss function is the main element for the model's learning, because its
 gradient defines the learning direction during gradient descent. In this way,
 the **YOLOV1** loss function is defined as:
 $$
-\mathbf{\lambda_{coord}\sum_{i=0}^{S_{H}\times S_{W}}\sum_{j=0}^{B}\mathbb{1}_{i,j}^{obj}[(x_{i}-\hat{x_{i}})^{2}+(y_{i}-\hat{y_{i}})^{2}+(\sqrt{w_{i}}-\sqrt{\hat{w_{i}}})^{2}+(\sqrt{h_{i}}-\sqrt{\hat{h_{i}}})^{2}]}
+\mathbf{\lambda_{coord}\sum_{i=0}^{S_{H}\times S_{W}}\sum_{j=0}^{B}\mathbb{1}_{i,j}^{obj}((x_{i}-\hat{x_{i}})^{2}+(y_{i}-\hat{y_{i}})^{2}+(\sqrt{w_{i}}-\sqrt{\hat{w_{i}}})^{2}+(\sqrt{h_{i}}-\sqrt{\hat{h_{i}}})^{2})}
 $$
 
 $$
@@ -92,7 +94,7 @@ $$
 $$
 
 $$
-\mathbf{+\sum_{i=0}^{S_{H} \times S_{W}}\mathbb{1}_{i}^{obj}\sum_{c \in classes}(p_{i}(c)-\hat{p_{i}(c)})^{2}}
+\mathbf{+\sum_{i=0}^{S_{H} \times S_{W}}\mathbb{1}_{i}^{obj}\sum_{c \in classes}(p_{i}(c)-\hat{p_{i}}(c))^{2}}
 $$
 
 The loss function has two scalar parameters that can be called weights, $\mathbf{\lambda_{coord}}$

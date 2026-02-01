@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this repository will be documented in this file.
- 
+
+## 2026-02-01 - Initial Commit: correction
+
+### Fixed
+- **framework_scratch/documentations** added for visual explanations in README.md.
+- Correction applied in README.md (Missing close brace, paper link, YOLOV1 loss function etc.).
+
 ## 2026-02-01 - Initial Commit
 
 ### Added
