@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this repository will be documented in this file.
 
+## 2026-02-04 - Feature: Face Detection function for dataset usage
+
+### Added
+- **Face Detection** dataset function added
+- Correction applied again in README.md
+
 ## 2026-02-01 - Initial Commit: correction
 
 ### Fixed
