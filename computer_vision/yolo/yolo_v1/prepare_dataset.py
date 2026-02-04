@@ -235,7 +235,7 @@ def prepare_vocdetection(path: str, year: Literal["2007", "2012"] = "2007", box_
             labels = {}
             
             for file in tqdm(os.listdir(os.path.join(path, "VOC2012/Annotations/")), leave=True):
-                if file[:-4] in data:
+                if file.split(".")[0] in data:
                     tree = ET.parse(os.path.join(path, "VOC2012/Annotations", file))
                     root = tree.getroot()
 
@@ -262,7 +262,7 @@ def prepare_vocdetection(path: str, year: Literal["2007", "2012"] = "2007", box_
                             h = ymax - ymin
                             bbox = [(xmin + (w / 2)) / width, (ymin + (h / 2)) / height, w / width, h / height]
 
-                        id = file[:-4].split("_")[1]
+                        id = file.split(".")[0].split("_")[1]
                         if id not in bboxes.keys():
                             bboxes[id] = [bbox]
                             labels[id] = [categories[label]]
@@ -273,11 +273,80 @@ def prepare_vocdetection(path: str, year: Literal["2007", "2012"] = "2007", box_
                         if update_weights:
                             weights[categories[label]] += 1
 
-                    image = np.array(Image.open(os.path.join(path, "VOC2012/JPEGImages", f"{file[:-4]}.jpg")))
+                    image = np.array(Image.open(os.path.join(path, "VOC2012/JPEGImages", f"{file.split(".")[0]}.jpg")))
                     images[id] = image
             return {"images": images, "bboxes": bboxes, "labels": labels}
 
         return _treatment_2012(train_data), _treatment_2012(val_data, False), weights, len(categories), categories, f"pascalvoc{year}", "object_detection"
+
+def prepare_face_detection(path: str, size: Union[int, Tuple[int, int]], box_format: Literal["xyxy", "xywh", "xcycwh"] = "xywh") -> Union[Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, Dict[str, Union[List[int], List[List[int]]]]], Dict[str, Dict[str, Union[int, List[int]]]], List[float], int, Dict[str, int], Literal['pascalvoc2007'], Literal['object_detection']], Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, Dict[str, Union[List[int], List[List[int]]]]], Dict[str, Dict[str, Union[int, List[int]]]], List[float], int, Dict[str, int], Literal['face_detection'], Literal['object_detection']]]:
+    """
+    Method that prepares the "object detection" Face Detection dataset.
+
+    :param str **path**: Path where the dataset is stored.
+    :param Union[int, Tuple[int, int]] **size**: Size of images.
+    :param Literal["xyxy", "xywh", "xcycwh"] **box_format**: Format of bounding boxes. Set to `"xywh"`.
+    :return: Train set, validation set, weights, number of classes, classes with their id, dataset name and dataset type.
+    :rtype: Union[Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, Dict[str, Union[List[int], List[List[int]]]]], Dict[str, Dict[str, Union[int, List[int]]]], List[float], int, Dict[str, int], Literal['pascalvoc2007'], Literal['object_detection']], Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, Dict[str, Union[List[int], List[List[int]]]]], Dict[str, Dict[str, Union[int, List[int]]]], List[float], int, Dict[str, int], Literal['face_detection'], Literal['object_detection']]]
+    """
+    assert isinstance(size, int) or isinstance(size, tuple), f"size has to be an {int} or {tuple} instance, not {type(size)}."
+    if isinstance(size, int):
+        size = (size, size)
+
+    categories = {"face": 0}
+
+    def _positive(value: float):
+        if value <= 0.01:
+            return 0.
+        elif  value >= 1.:
+            return 0.99
+        else:
+            return value
+
+    def _treatment(set: str):
+        images_path = os.path.join(path, f"Face Detection/images/{set}")
+        labels_path = os.path.join(path, f"Face Detection/labels/{set}")
+        images = {}
+        bboxes = {}
+        labels = {}
+
+        images_files = sorted(os.listdir(images_path))
+        labels_files = sorted(os.listdir(labels_path))
+        for image_file, label_file in tqdm(zip(images_files, labels_files), total=len(os.listdir(images_path)), leave=True):
+            image_id = str(os.path.basename(image_file).split(".")[0])
+            image = np.array(Image.open(os.path.join(images_path, image_file)).resize(size=size).convert("RGB"))
+            images[image_id] = image
+
+            with open(os.path.join(labels_path, label_file), "r") as file:
+                lines = file.readlines()
+                if lines != []:
+                    for elements in lines:
+                        elements = elements.split(" ")
+                        xc = _positive(float(elements[1]))
+                        yc = _positive(float(elements[2]))
+                        w = _positive(float(elements[3]))
+                        h = _positive(float(elements[4][:-1]))
+
+                        if box_format == "xyxy":
+                            bbox = [xc - (w / 2), yc - (h / 2), xc + (w / 2), yc + (h / 2)]
+                        elif box_format == "xywh":
+                            bbox = [xc - (w / 2), yc - (h / 2), w, h]
+                        elif box_format == "xcycwh":
+                            bbox = [xc, yc, w, h]
+
+                        if image_id not in bboxes.keys():
+                            bboxes[image_id] = [bbox]
+                            labels[image_id] = [int(elements[0])]
+                        else:
+                            bboxes[image_id].append(bbox)
+                            labels[image_id].append(int(elements[0]))
+                else:
+                    bboxes[image_id] = [[0, 0, 0, 0]]
+                    labels[image_id] = [None]
+
+        return {"images": images, "bboxes": bboxes, "labels": labels}
+                
+    return _treatment("train"), _treatment("validation"), {0: 1}, len(categories), categories, "face_detection", "object_detection"
 
 class Compose(object):
     """
@@ -393,6 +462,7 @@ class YOLOV1Dataset(Dataset):
 
             bboxes = self._bboxes[idx]
             labels = self._labels[idx]
+
             for bbox, label in zip(bboxes, labels):
                 x, y, w, h = bbox
                 i, j = int(y * self.S), int(x * self.S)
@@ -404,17 +474,26 @@ class YOLOV1Dataset(Dataset):
                 if pos.nelement() != 0:
                     if pos[0].item() == label:
                         n = self._loc(grid_label[i,j])
-                        if n * 5 < self.B * 5 + self.C:
+                        if n * 5 + self.C < self.B * 5 + self.C:
                             grid_label[i, j, n * 5] = 1
 
                             box_coordinates = torch.tensor([x_cell, y_cell, width_cell, height_cell])
-                            grid_label[i, j, n * 5 + 1:5 * (n+1)] = box_coordinates
+                            try:
+                                grid_label[i, j, n * 5 + 1:(n+1) * 5] = box_coordinates
+                            except:
+                                break
+                        else:
+                            break
+                    else:
+                        continue
                 else:
-                    grid_label[i, j, self.C] = 1
+                    if label is not None:
+                        grid_label[i, j, self.C] = 1
 
-                    cell_bbox = torch.tensor([x_cell, y_cell, width_cell, height_cell])
-                    grid_label[i, j, self.C+1:self.C+5] = cell_bbox
-
-                    grid_label[i, j, label] = 1
+                        cell_bbox = torch.tensor([x_cell, y_cell, width_cell, height_cell])
+                        grid_label[i, j, self.C+1:self.C+5] = cell_bbox
+                        grid_label[i, j, label] = 1
+                    else:
+                        break
             
             return image, grid_label

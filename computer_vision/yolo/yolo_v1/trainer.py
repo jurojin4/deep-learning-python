@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from typing import Dict, List, Literal, Tuple, Union
 from metrics import Accuracy, Precision, Recall, F1_Score, Mean_Average_Precision
-from prepare_dataset import prepare_cifar10, prepare_vocdetection, prepare_tiny_imagenet, Compose, YOLOV1Dataset
+from prepare_dataset import prepare_cifar10, prepare_face_detection, prepare_vocdetection, prepare_tiny_imagenet, Compose, YOLOV1Dataset
 
 import os
 import time
@@ -18,11 +18,11 @@ import pickle
 import torch.nn as nn
 import torch.optim as optim
 
-def train_model(dataset_name: Literal["cifar10", "pascalvoc2007", "pascalvoc2012", "tiny-imagenet200"], dataset_path: str, epochs: int, size: int, batch_size: int, learning_rate: float = 1e-5, milestones: Union[List[int], None] = None, detailed: bool = False, save: bool = False, save_metric: Literal["accuracy", "loss", "mAP", "precision", "recall", "f1_score"] = "loss", delete: bool = False, weights_path: Union[str, None] = None, load_all: bool = False, experiment_name: Union[str, None] = None) -> None:
+def train_model(dataset_name: Literal["cifar10", "face_detection", "pascalvoc2007", "pascalvoc2012", "tiny-imagenet200"], dataset_path: str, epochs: int, size: int, batch_size: int, learning_rate: float = 1e-5, milestones: Union[List[int], None] = None, detailed: bool = False, save: bool = False, save_metric: Literal["accuracy", "loss", "mAP", "precision", "recall", "f1_score"] = "loss", delete: bool = False, weights_path: Union[str, None] = None, load_all: bool = False, experiment_name: Union[str, None] = None) -> None:
     """
     Method that trains the model following chosen arguments.
 
-    :param Literal["cifar10", "pascalvoc2007", "pascalvoc2012", "tiny-imagenet200"] **dataset_name**: Name of the dataset.
+    :param Literal["cifar10", "face_detection", "pascalvoc2007", "pascalvoc2012", "tiny-imagenet200"] **dataset_name**: Name of the dataset.
     :param str **dataset_path**: Path of the dataset, where it will be stored.
     :param int **epochs**: Number of iterations during the training.
     :param int **size**: Image size.
@@ -39,6 +39,8 @@ def train_model(dataset_name: Literal["cifar10", "pascalvoc2007", "pascalvoc2012
     """
     if dataset_name == "cifar10":
         train, validation, weights, num_classes, categories, dataset_name, mode = prepare_cifar10(path=dataset_path, delete=delete)
+    elif dataset_name == "face_detection":
+        train, validation, weights, num_classes, categories, dataset_name, mode = prepare_face_detection(path=dataset_path, size=size)
     elif dataset_name == "tiny-imagenet200":
         train, validation, weights, num_classes, categories, dataset_name, mode = prepare_tiny_imagenet(path=dataset_path, delete=delete)
     elif dataset_name == "pascalvoc2007":
@@ -46,7 +48,7 @@ def train_model(dataset_name: Literal["cifar10", "pascalvoc2007", "pascalvoc2012
     else:
         train, validation, weights, num_classes, categories, dataset_name, mode = prepare_vocdetection(path=dataset_path, year="2012")
 
-    model = YOLOV1(in_channels=3, img_size=size, C=num_classes, batch_normalization=True, mode=mode)
+    model = YOLOV1(in_channels=3, img_size=size, C=num_classes, B=2, batch_normalization=True, mode=mode)
 
     if weights_path is not None:
         model.load(weights_path=weights_path, all=load_all)
