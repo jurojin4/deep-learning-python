@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this repository will be documented in this file.
 
+## 2026-02-06 - Reorganization
+
+### Added
+- main files for computer vision (trainer.py, metrics.py, dataset.py).
+
+### Deleted
+- metrics.py file in yolov1 repository.
+
 ## 2026-02-04 - Feature: Face Detection function for dataset usage
 
 ### Added

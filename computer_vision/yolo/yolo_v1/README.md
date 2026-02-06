@@ -1,6 +1,6 @@
 # **YOLOV1 Implementation on Pytorch**
 **Y**ou **O**nly **L**ook **O**nce (**YOLOV1**) is an **object detection** model published in
-the paper '<u>**You Only Look Once: Unified, Real-Time Object Detection**</u>' **(2015)**.
+the paper **<u><a href="https://arxiv.org/pdf/1506.02640">'You Only Look Once: Unified, Real-Time Object Detection'</a></u>** **(2015)**.
 This model had a huge impact in the field, because at that time the most popular model
 was R-CNN (Region-Based Convolutional Neural Network), its functioning is heavy because
 it processes the same image several times (on average a hundred times). In this way, YOLOV1
@@ -65,7 +65,7 @@ $$
        \alpha.x & \text{\ \ \ if \ } x < 0 \\
 		x & \text{ \ \ \ otherwise}
         & 
-    \end{array}\right.}
+    \end{array}\right.
 }
 $$
 
@@ -79,7 +79,7 @@ $$
 </tr>
 
 In the results, the model has been a slightly modified, convolutional block has one more
-layer: '**Batch Normalization**'.
+layer: **'Batch Normalization'**.
 
 ### **Loss Function**
 The loss function is the main element for the model's learning, because its
