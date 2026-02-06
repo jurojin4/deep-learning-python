@@ -1,7 +1,7 @@
 from PIL import Image
 from yolov1 import YOLOV1
 from prepare_dataset import Compose
-from yolo_tools import get_bboxes, get_bboxes_preds
+from yolo_tools import get_bboxes_preds
 
 import os
 import time

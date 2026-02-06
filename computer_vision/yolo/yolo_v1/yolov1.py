@@ -1,5 +1,5 @@
 from math import floor
-from typing import Literal, Union
+from typing import Literal
 
 import os
 import torch

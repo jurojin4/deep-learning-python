@@ -1,62 +1,6 @@
-from typing import List, Literal, Tuple, Union
-
+from typing import List, Tuple, Union
+from ...metrics import intersection_over_union
 import torch
-
-eps = 1e-9
-
-def intersection_over_union(bboxes_preds: torch.Tensor, bboxes_gts: torch.Tensor, box_format: Literal["xyxy", "xywh", "xcycwh"] = "xywh") -> torch.Tensor:
-    """
-    Method that calculates IoU between bounding boxes of predictions and ground_truths.
-
-    :param Tensor **bboxes_preds**: Predictions bounding boxes of shapes (B, 4).
-    :param Tensor **bboxes_gts**: Ground Truths bounding boxes of shapes (B, 4).
-    :param Literal["xyxy", "xywh", "xcycwh"] **box_format**: Format of bounding boxes. Set to `xywh`.
-    :return: Intersection over Union of shapes (B, 1).
-    :rtype: Tensor
-    """
-    if box_format == "xyxy":
-        preds_x1 = bboxes_preds[..., 0:1]
-        preds_y1 = bboxes_preds[..., 1:2]
-        preds_x2 = bboxes_preds[..., 2:3]
-        preds_y2 = bboxes_preds[..., 3:4]
-
-        ground_truths_x1 = bboxes_gts[..., 0:1]
-        ground_truths_y1 = bboxes_gts[..., 1:2]
-        ground_truths_x2 = bboxes_gts[..., 2:3]
-        ground_truths_y2 = bboxes_gts[..., 3:4]
-
-    elif box_format == "xywh":
-        preds_x1 = bboxes_preds[..., 0:1]
-        preds_y1 = bboxes_preds[..., 1:2]
-        preds_x2 = bboxes_preds[..., 0:1] + bboxes_preds[..., 2:3]
-        preds_y2 = bboxes_preds[..., 1:2] + bboxes_preds[..., 3:4]
-
-        ground_truths_x1 = bboxes_gts[..., 0:1]
-        ground_truths_y1 = bboxes_gts[..., 1:2]
-        ground_truths_x2 = bboxes_gts[..., 0:1] + bboxes_gts[..., 2:3]
-        ground_truths_y2 = bboxes_gts[..., 1:2] + bboxes_gts[..., 3:4]
-    elif box_format == "xcycwh":
-        preds_x1 = bboxes_preds[..., 0:1] - (bboxes_preds[..., 2:3] / 2)
-        preds_y1 = bboxes_preds[..., 1:2] - (bboxes_preds[..., 3:4] / 2)
-        preds_x2 = bboxes_preds[..., 2:3] + preds_x1
-        preds_y2 = bboxes_preds[..., 3:4] + preds_y1
-
-        ground_truths_x1 = bboxes_gts[..., 0:1] - (bboxes_gts[..., 2:3] / 2)
-        ground_truths_y1 = bboxes_gts[..., 1:2] - (bboxes_gts[..., 3:4] / 2)
-        ground_truths_x2 = bboxes_gts[..., 2:3] + ground_truths_x1
-        ground_truths_y2 = bboxes_gts[..., 3:4] + ground_truths_y1
-
-    x1 = torch.max(preds_x1, ground_truths_x1)
-    y1 = torch.max(preds_y1, ground_truths_y1)
-    x2 = torch.min(preds_x2, ground_truths_x2)
-    y2 = torch.min(preds_y2, ground_truths_y2)
-
-    intersection = (x2 - x1).clamp(0) * (y2 - y1).clamp(0)
-
-    preds_area = abs((preds_x2 - preds_x1) * (preds_y2 - preds_y1))
-    ground_truths_area = abs((ground_truths_x2 - ground_truths_x1) * (ground_truths_y2 - ground_truths_y1))
-
-    return intersection / (preds_area + ground_truths_area - intersection + eps)
 
 def non_max_suppression(bboxes: List[torch.Tensor], iou_threshold: float, confidence_threshold: float, alternative: bool = False) -> List[torch.Tensor]:
     """
