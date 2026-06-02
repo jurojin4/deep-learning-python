@@ -175,13 +175,11 @@ class YOLOV3Trainer(Trainer):
         :rtype: Union[Tuple[Dict[str, float], Dict[str, Dict[int, List[float]]]], Dict[str, float]]
         """
         self._model.train()
-        metrics = dict([(metric_to_use.name, []) for metric_to_use in self._metrics_to_use])
+        metrics = self._init_metrics
         metrics["loss"] = []
 
         if self._detail:
-            metrics_per_class = {}
-        else:
-            metrics_per_class = None
+            metrics_per_class = self._init_metrics_per_class
 
         if not self._no_verbose:
             loop = tqdm(self._train_loader, leave=True)
@@ -225,9 +223,6 @@ class YOLOV3Trainer(Trainer):
                         metrics[metric.name].append(measure)
 
                     if self._detail and isinstance(measure, tuple):
-                        if metric.name not in metrics_per_class.keys():
-                            metrics_per_class[metric.name] = dict([(label, []) for label in range(self._num_classes)])
-
                         for label, value in measure[1].items():
                             metrics_per_class[metric.name][label].append(value)
 
@@ -250,13 +245,11 @@ class YOLOV3Trainer(Trainer):
         :rtype: Union[Tuple[Dict[str, float], Dict[str, Dict[int, List[float]]]], Dict[str, float]]
         """
         self._model.eval()
-        metrics = dict([(metric_to_use.name, []) for metric_to_use in self._metrics_to_use])
+        metrics = self._init_metrics
         metrics["loss"] = []
 
         if self._detail:
-            metrics_per_class = {}
-        else:
-            metrics_per_class = None
+            metrics_per_class = self._init_metrics_per_class
 
         if not self._no_verbose:
             loop = tqdm(self._validation_loader, leave=True)
@@ -294,9 +287,6 @@ class YOLOV3Trainer(Trainer):
                             metrics[metric.name].append(measure)
 
                         if self._detail and isinstance(measure, tuple):
-                            if metric.name not in metrics_per_class.keys():
-                                metrics_per_class[metric.name] = dict([(label, []) for label in range(self._num_classes)])
-
                             for label, value in measure[1].items():
                                     metrics_per_class[metric.name][label].append(value)
 

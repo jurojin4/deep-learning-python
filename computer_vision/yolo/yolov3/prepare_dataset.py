@@ -42,6 +42,7 @@ class YOLOV3Dataset(Dataset):
         else:
             num_elements = 6 if self.num_classes > 1 else 5
             grid_label = [torch.zeros((self._num_bboxes_prior_per_scale, s, s, num_elements), dtype=torch.float32) for s in self.S]
+            
             for bbox in bboxes:
                 if self.num_classes > 1:
                     label = bbox[0]

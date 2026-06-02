@@ -27,7 +27,7 @@ class YOLOV1Loss(nn.Module):
         super().__init__()
         self._mse = nn.MSELoss(reduction=reduction)
 
-        self.num_classes = num_classes
+        self.num_classes = num_classes if num_classes > 1 else 0
         self.S = S
         self.B = B
 

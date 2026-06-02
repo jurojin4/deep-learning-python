@@ -58,7 +58,6 @@ class ScalePrediction(nn.Module):
 
         :param int **in_channels**: Number that represents the size of the first dimension for a 3D object in torch.
         :param int **num_classes**: Number of classes.
-        :param bool **batch_normalization**: Set to `False`, if `True` then a batch normalization layer is added to the convolutional block.
         """
         assert isinstance(in_channels, int), f"in_channels has to be an {int} instance, not {type(in_channels)}."
         assert isinstance(num_classes, int), f"num_classes has to be an {int} instance, not {type(num_classes)}."
@@ -90,7 +89,6 @@ class YOLOV3(nn.Module):
         :param int **num_classes**: Number of classes.
         :param int **img_height**: Image height.
         :param int **img_width**: Image width.
-        :param bool **batch_normalization**: Set to `False`, if `True` then a batch normalization layer is added to the convolutional block.
         :param Literal["classification", "object_detection"] **mode**: String that defines the model mode. Set to `object_detection`.
         """
         assert isinstance(in_channels, int), f"in_channels has to be an {int} instance, not {type(in_channels)}."
@@ -142,7 +140,7 @@ class YOLOV3(nn.Module):
                 elif mode == "classification":
                     network.append(nn.AvgPool2d(kernel_size=3, stride=1, padding=1))
                     network.append(nn.Flatten())
-                    network.append(nn.Linear(1024 * self._img_size * self._img_size, self._num_classes))
+                    network.append(nn.Linear(1024 * self._image_height * self._image_width, self._num_classes))
                     network.append(nn.Softmax(dim=-1))
 
         return network

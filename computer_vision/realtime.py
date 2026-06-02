@@ -2,6 +2,7 @@ from PIL import Image
 from typing import Union
 
 import os
+os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import time
 import torch
 import pickle
@@ -72,7 +73,7 @@ class Realtime:
     
     def __call__(self) -> None:
         """
-        Built-in Python method that allows to call an instance like function, launch the training.
+        Built-in Python method that allows to call an instance like function.
         """
         if self._mode == "classification":
             self._classification
@@ -123,19 +124,20 @@ class Realtime:
         """
         Property that detects objets using a camera.
         """
-        vid = cv.VideoCapture(0) 
+        reads = []
+        remaining = []
+
+        vid =  cv.VideoCapture(0)
 
         frame_width = 640
         frame_height = 480
         vid.set(cv.CAP_PROP_FRAME_WIDTH, frame_width)
         vid.set(cv.CAP_PROP_FRAME_HEIGHT, frame_height)
 
-        prev_frame_time = 0
-        new_frame_time = 0
-
         while(True):
+            start_frame_time = time.time()
             _, frame = vid.read()
-            new_frame_time = time.time()
+            mid = time.time()
 
             height, width,_ = frame.shape
 
@@ -156,16 +158,18 @@ class Realtime:
                         cv.rectangle(frame, (x1, y1),(x2, y2),(0, 255, 0), 3)
                         cv.putText(frame, f"{self._categories[label]}: {objectiveness}", (x1 - 5, y1 - 5), cv.FONT_HERSHEY_SIMPLEX, 0.5, (100, 255, 0), 1, cv.LINE_AA)
 
-                new_frame_time = time.time()
-                fps = 1 / (new_frame_time-prev_frame_time)
-                prev_frame_time = new_frame_time
-
-                cv.putText(frame, f"{int(fps)}", (7, 35), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv.LINE_AA)
+                end_frame_time = time.time()
+                cv.putText(frame, f"{int(1 / (end_frame_time - start_frame_time))}", (7, 35), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv.LINE_AA)
                 cv.imshow(f"{self._name} ({self._mode})", frame)
 
                 if cv.waitKey(1) & 0xFF == ord('q'): 
                     break
-        
+                
+                atime = time.time()
+            print(f"cv.read: {(mid - start_frame_time):.10f} second(s)")
+            print(f"remaining: {(end_frame_time - mid):.10f} second(s)")
+            print(f"imshow et puttext: {(atime - end_frame_time):.10f} second(s)")
+
         vid.release() 
         cv.destroyAllWindows()
 

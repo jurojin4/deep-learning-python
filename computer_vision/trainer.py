@@ -116,14 +116,6 @@ class Trainer:
         print(f"Using {torch.cuda.device_count()} GPU(s)")
         print(f"Model parameters: {integer_to_string(sum([p.numel() for p in self._model.parameters() if p.requires_grad]))}")
 
-        try:
-            self.__getattribute__("_config")
-            self._logs["config"] = self._config["name"]
-            self._logs["config_details"] = self._config
-            print(f"Model has the configuration: {self._config["name"]}")
-        except:
-            print("Model has no configuration.")
-
         self._device_model = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         assert isinstance(self._model, (nn.Module, nn.Sequential)), f"model has to be a {nn.Module} or {nn.Sequential} instance, not {type(self._model)}."
 
@@ -167,12 +159,12 @@ class Trainer:
                 mAP = Mean_Average_Precision(num_classes=self._num_classes, iou_threshold=iou, detail=detail, box_format=box_format)
                 self._metrics[mAP.name] = mAP
 
-        if experiment_name is None:
-            experiment_name = f"{"".join([chr(random.randint(97, 122)) for _ in range(3)])}-{str(random.randint(0, 10000))}"
-
         self._metrics_to_use = [item for _, item in self._metrics.items()]
 
         if save:
+            if experiment_name is None:
+                experiment_name = f"{"".join([chr(random.randint(97, 122)) for _ in range(3)])}-{str(random.randint(0, 10000))}"
+
             self._define_dirname()
             if not os.path.exists(os.path.join(self._dirname, "model_saves", dataset_name)):
                 os.mkdir(os.path.join(self._dirname, "model_saves", dataset_name))
@@ -212,6 +204,13 @@ class Trainer:
                 self._logs["iou_threshold_overlap"] = self._iou_threshold_overlap
                 self._logs["confidence_threshold"] = self._confidence_threshold
 
+            try:
+                self.__getattribute__("_config")
+                self._logs["config"] = self._config["name"]
+                print(f"Model has the configuration: {self._config["name"]}")
+            except:
+                print("Model has no configuration.")
+
             self._save_pickle(os.path.join(self._save_path, "logs.pickle"), self._logs)
             self._save_pickle(os.path.join(self._save_path, "categories.pickle"), self._categories)
 
@@ -223,18 +222,18 @@ class Trainer:
         else:
             self._float_point = 5
         
-        self._train_metrics = dict([(metric_to_use.name, []) for metric_to_use in self._metrics_to_use])
+        self._train_metrics = self._init_metrics
         self._train_metrics["loss"] = []
+
         if self._detail:
-            self._train_metrics_per_class = {}
+            self._train_metrics_per_class = self._init_metrics_per_class
 
         if self._validation_loader is not None:
-            self._validation_metrics = dict([(metric_to_use.name, []) for metric_to_use in self._metrics_to_use])
+            self._validation_metrics = self._init_metrics
             self._validation_metrics["loss"] = []
 
             if self._detail:
-                self._validation_metrics_per_class = {}
-
+                self._validation_metrics_per_class = self._init_metrics_per_class
 
         print(f"\nRun details:")
         print(f"Data augmentation: {self._data_aug}")
@@ -384,13 +383,11 @@ class Trainer:
         :rtype: Union[Tuple[Dict[str, float], Dict[str, Dict[int, List[float]]]], Dict[str, float]]
         """
         self._model.train()
-        metrics = dict([(metric_to_use.name, []) for metric_to_use in self._metrics_to_use])
+        metrics = self._init_metrics
         metrics["loss"] = []
 
         if self._detail:
-            metrics_per_class = {}
-        else:
-            metrics_per_class = None
+            metrics_per_class = self._init_metrics_per_class
 
         if not self._no_verbose:
             loop = tqdm(self._train_loader, leave=True)
@@ -435,9 +432,6 @@ class Trainer:
                         metrics[metric.name].append(measure)
 
                     if self._detail and isinstance(measure, tuple):
-                        if metric.name not in metrics_per_class.keys():
-                            metrics_per_class[metric.name] = dict([(label, []) for label in range(self._num_classes)])
-
                         for label, value in measure[1].items():
                             metrics_per_class[metric.name][label].append(value)
 
@@ -460,13 +454,11 @@ class Trainer:
         :rtype: Union[Tuple[Dict[str, float], Dict[str, Dict[int, List[float]]]], Dict[str, float]]
         """
         self._model.eval()
-        metrics = dict([(metric_to_use.name, []) for metric_to_use in self._metrics_to_use])
+        metrics = self._init_metrics
         metrics["loss"] = []
 
         if self._detail:
-            metrics_per_class = {}
-        else:
-            metrics_per_class = None
+            metrics_per_class = self._init_metrics_per_class
 
         if not self._no_verbose:
             loop = tqdm(self._validation_loader, leave=True)
@@ -506,9 +498,6 @@ class Trainer:
                             metrics[metric.name].append(measure)
 
                         if self._detail and isinstance(measure, tuple):
-                            if metric.name not in metrics_per_class.keys():
-                                metrics_per_class[metric.name] = dict([(label, []) for label in range(self._num_classes)])
-
                             for label, value in measure[1].items():
                                 metrics_per_class[metric.name][label].append(value)
 
@@ -646,3 +635,26 @@ class Trainer:
             name = f"_{name}"
 
         self._save_pickle(os.path.join(self._save_path, f"{stage}{name}.pickle"), metrics)
+
+    @property
+    def _init_metrics(self) -> Dict[str, List]:
+        """
+        Property that initializes metrics.
+        :return: Dictionary that contains for each metric a list.
+        :rtype: Dict[str, List]
+        """
+        return dict([(metric_to_use.name, []) for metric_to_use in self._metrics_to_use])
+
+    @property
+    def _init_metrics_per_class(self) -> Dict[str, Dict[int, List]]:
+        """
+        Property that initializes metrics per class.
+        :return: Dictionary that contains for each metric a dictionnary that contains for each label (class) a list.
+        :rtype: Dict[str, Dict[int, List]]
+        """
+        metrics_per_class = {}
+        for metric in self._metrics_to_use:
+            if metric.name not in metrics_per_class.keys():
+                metrics_per_class[metric.name] = dict([(label, []) for label in range(self._num_classes)])
+        
+        return metrics_per_class

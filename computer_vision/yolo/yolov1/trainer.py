@@ -101,7 +101,7 @@ class YOLOV1Trainer(Trainer):
         :return: YOLOV1 model.
         :rtype YOLOV1
         """
-        model = YOLOV1(in_channels=3, image_width=self._image_size[0], image_height=self._image_size[1], num_classes=self._num_classes, B=2, mode=self._mode)
+        model = YOLOV1(in_channels=3, image_width=self._image_size[1], image_height=self._image_size[0], num_classes=self._num_classes, B=2, mode=self._mode)
 
         if self._weights_path is not None:
             model.load(self._weights_path, self._load_all)

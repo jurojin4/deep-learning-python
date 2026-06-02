@@ -83,7 +83,6 @@ class ResBlock(nn.Module):
         assert isinstance(batch_normalization, bool), f"batch_normalization has to be an {bool} instance, not {type(batch_normalization)}."
         assert isinstance(residual, bool), f"residual has to be an {bool} instance, not {type(residual)}."
         super().__init__()
-
         self._network = nn.ModuleList()
         self.repetition = repetition
         self.residual = residual
@@ -93,6 +92,7 @@ class ResBlock(nn.Module):
                                  ConvBlock(in_channels // 2, in_channels, kernel_size=3, stride=1, padding=1, batch_normalization=batch_normalization, activation_function="leakyrelu")))
             
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+
         """
         Method that forwards an input Tensor into the ResBlock instance.
 

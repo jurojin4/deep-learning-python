@@ -1,8 +1,8 @@
 from typing import List
 from .yolov1 import YOLOV1
-from ...realtime import Realtime, get_args_parser
 from .prepare_dataset import Compose
 from .yolo_tools import get_bboxes_preds
+from ...realtime import Realtime, get_args_parser
 
 import torch
 import torchvision.transforms as transforms
@@ -11,7 +11,7 @@ class YOLOV1Realtime(Realtime):
     """
     YOLOV1Realtime class.
     """
-    def __init__(self, weights_path, iou_threshold_overlap=None, confidence_threshold=None, batch_normalization: bool = True, normalize = False, **kwargs):
+    def __init__(self, weights_path, iou_threshold_overlap=None, confidence_threshold=None, normalize = False, **kwargs):
         self._kwargs = kwargs
         super().__init__(weights_path, iou_threshold_overlap, confidence_threshold, normalize)
     
