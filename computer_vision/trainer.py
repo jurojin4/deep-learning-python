@@ -199,7 +199,7 @@ class Trainer:
 
             model_parameters = sum([p.numel() for p in self._model.parameters() if p.requires_grad])
 
-            self._logs = {"batch_size": batch_size, "data_augmentaion": data_aug, "dataset_name": dataset_name, "dataset_type": self._mode, "epochs": epochs, "experiment_name": experiment_name, "image_size": self._image_size, "learning_rate": lr, "loss": self._loss.__class__.__name__, "num_classes": self._num_classes, "num_parameters": model_parameters, "optimizer": optimizer.__class__.__name__, "save_metric": self._save_metric, "warmup_epoch": self._warmup_epoch}
+            self._logs = {"batch_size": batch_size, "data_augmentation": data_aug, "dataset_name": dataset_name, "dataset_type": self._mode, "epochs": epochs, "experiment_name": experiment_name, "image_size": self._image_size, "learning_rate": lr, "loss": self._loss.__class__.__name__, "num_classes": self._num_classes, "num_parameters": model_parameters, "optimizer": optimizer.__class__.__name__, "save_metric": self._save_metric, "warmup_epoch": self._warmup_epoch}
 
             if scheduler is not None:
                 self._logs["scheduler"] = scheduler.__class__.__name__
