@@ -5,58 +5,32 @@ from .metrics import intersection_over_union
 
 import torch
 
-def non_max_suppression(bboxes: List[List[float]], num_classes: int, iou_threshold: float, confidence_threshold: float, alternative: bool = False) -> List[torch.Tensor]:
+def non_max_suppression(bboxes: List[List[float]], num_classes: int, iou_threshold: float, confidence_threshold: float) -> List[torch.Tensor]:
     """
     Non-Max-Supression method, sorts bounding boxes in function of the confidence and the overlay between the best box during the loop.
     
-    :param List[List[float]] **bboxes**: Bounding boxes to sort, shape (batch, 6).
+    :param List[List[float]] **bboxes**: Bounding boxes to sort, shape (batch, 6) = (batch, (id_class, confidence, box)) if num_classes > 1 otherwise shape (batch, 5) = (batch, (confidence, box)).
     :param int **num_classes**: Number of classes to predict.
     :param float **iou_threshold**: IoU threshold between two boxes to determine whether they are overlaid.
     :param float **confidence_threshold**: Threshold that bounding-box confidence scores must exceed.
-    :param bool **alternative**: Boolean that adds a condition during NMS (label difference).
     :return: Bounding boxes sorted by NMS.
     :rtype: List[List[float]]
     """
     scaling = 0 if num_classes > 1 else 1
-    bboxes = sorted([box for box in bboxes if box[1-scaling] > confidence_threshold], key=lambda x: x[1], reverse=True)
-    bboxes_after_nms = []
-    while bboxes:
-        best_box = bboxes.pop(0)
-
-        if alternative and num_classes > 1:
-            bboxes = [box for box in bboxes if intersection_over_union(torch.tensor(best_box[2-scaling:]), torch.tensor(box[2-scaling:])) < iou_threshold or best_box[0] != box[0]]
-        else:
-            bboxes = [box for box in bboxes if intersection_over_union(torch.tensor(best_box[2-scaling:]), torch.tensor(box[2-scaling:])) < iou_threshold]
-
-        bboxes_after_nms.append(best_box)
-    return bboxes_after_nms
-
-def non_max_suppression_alpha(bboxes: List[torch.Tensor], num_classes: int, iou_threshold: float, confidence_threshold: float) -> List[torch.Tensor]:
-    """
-    Non-Max-Supression method, sorts bounding boxes in function of the confidence and the overlay between the best box during the loop.
-    
-    :param List[Tensor] **bboxes**: Bounding boxes to sort, shape (batch, 6).
-    :param int **num_classes**: Number of classes to predict.
-    :param float **iou_threshold**: IoU threshold between two boxes to determine whether they are overlaid.
-    :param float **confidence_threshold**: Threshold that bounding-box confidence scores must exceed.
-    :return: Bounding boxes sorted by NMS.
-    :rtype: List[Tensor]
-    """
-    scaling = 0 if num_classes > 1 else 1
-    bboxes = sorted([box for box in bboxes if box[1-scaling] > confidence_threshold], key=lambda x: x[1], reverse=True)
+    bboxes = sorted([box for box in bboxes if box[1-scaling] > confidence_threshold], key=lambda x: x[1-scaling], reverse=True)
     bouding_boxes = torch.tensor(bboxes)
 
     if len(bboxes) != 0:
         ious = intersection_over_union(bouding_boxes[..., 2-scaling], bouding_boxes[..., 2-scaling], is_aligned=False) < iou_threshold
-        L = [[] for _ in range(ious.shape[0])]
+        boolean_bboxes = [[] for _ in range(ious.shape[0])]
 
         for i in range(ious.shape[0] - 1):
-            for j, boool in enumerate(ious[i][i + 1:].tolist()):
-                L[i + j + 1].append(boool)
+            for j, intersection_bool in enumerate(ious[i][i + 1:].tolist()):
+                boolean_bboxes[i + j + 1].append(intersection_bool)
 
         delete = 0
-        for i in range(1, len(L)):
-            if torch.tensor(L[i]).all() != True:
+        for i in range(1, len(boolean_bboxes)):
+            if torch.tensor(boolean_bboxes[i]).all() != True:
                 bboxes.pop(i - delete)
                 delete += 1
     return bboxes

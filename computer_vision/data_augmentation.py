@@ -10,25 +10,31 @@ class DataAugmentation:
 	"""
 	Base class for Data Augmentation.
 	"""
-	def __init__(self, box_format: Literal["xyxy", "xywh", "xcycwh"], **kwargs):
+	def __init__(self, box_normalized: bool, box_format: Literal["xyxy", "xywh", "xcycwh"], **kwargs):
 		"""
 		Initializes the DataAugmentation class.
 
-		:param List[Callable] **transformations**: Transformations to apply to the images.
+		:param bool **box_normalized**: Boolean that specifies if the bounding box is 
+        :param Literal["xyxy", "xywh", "xcycwh"] **box_format**: Box format for bounding boxes.
 		:param ****kwargs**: Keywords arguments.
 		"""
+		assert isinstance(box_normalized, bool), f"box_normalized has to be a {bool} instance, not {type(box_normalized)}."
+		assert box_format in ["xyxy", "xywh", "xcycwh"], f"box_format has to be [\"xyxy\", \"xywh\", \"xcycwh\"]."
+
+		self._box_normalized = box_normalized
 		keys = ["brightness", "contrast", "saturation"]
 		for key in kwargs.keys():
 			if key in keys:
 				keys.pop(keys.index(key))
 
 		assert len(keys) == 0, f"Some keys for data augmentation are not present: {keys}."
-		self._transforms = [self._brightness, self._contrast, self._horizontal_flip, self._saturation]
+
+		self._transforms = [self._brightness, self._contrast, self._saturation, self._horizontal_flip]
 		self._to_tensor = ToTensor()
 		self._box_format = box_format
 		self._kwargs = kwargs		
 
-	def __call__(self, image: Image.Image, bboxes: List[List[Union[int, float]]]) -> Tuple[Image.Image, List[List[Union[int, float]]]]:
+	def __call__(self, image: Image.Image, bboxes: List[List[Union[int, float]]], width: int, height: int) -> Tuple[Image.Image, List[List[Union[int, float]]]]:
 		"""
 		Built-in Python method that allows to call an instance like function.
 
@@ -39,6 +45,9 @@ class DataAugmentation:
 		"""
 		image = self._to_tensor(image)
 		bboxes = torch.tensor(bboxes)
+		self._width = width
+		self._height = height
+
 		self._has_bboxes = len(bboxes) > 0
 		for transform in self._transforms:
 			image, bboxes = transform(image, bboxes)
@@ -54,15 +63,20 @@ class DataAugmentation:
 		:rtype: Tuple[Image.Image, List[List[float]]]
 		"""
 		new_image = F.hflip(image)
+		if self._box_normalized:
+			width = 1
+		else:
+			width = self._width
+
 		if self._has_bboxes:
 			if self._box_format == "xyxy":
 				bboxes_width = bboxes[..., 3] - bboxes[..., 1]
-				bboxes[..., 1] = 1 - bboxes[..., 3]
+				bboxes[..., 1] = width - bboxes[..., 3]
 				bboxes[..., 3] = bboxes[..., 1] + bboxes_width
 			elif self._box_format == "xywh":
-				bboxes[..., 1] = 1 - (bboxes[..., 1] + bboxes[..., 3])
+				bboxes[..., 1] = width - (bboxes[..., 1] + bboxes[..., 3])
 			elif self._box_format == "xcycwh":
-				bboxes[..., 1] = 1 - bboxes[..., 1]
+				bboxes[..., 1] = width - bboxes[..., 1]
 		return new_image, bboxes
 
 	def _vertical_flip(self, image: Image.Image, bboxes: torch.Tensor) -> Tuple[Image.Image, List[List[float]]]:
@@ -75,15 +89,20 @@ class DataAugmentation:
 		:rtype: Tuple[Image.Image, List[List[float]]]
 		"""
 		new_image = F.vflip(image)
+		if self._box_normalized:
+			height = 1
+		else:
+			height = self._height
+
 		if self._has_bboxes:
 			if self._box_format == "xyxy":
 				bboxes_height = bboxes[..., 4] - bboxes[..., 2]
-				bboxes[..., 2] = 1 - bboxes[..., 4]
+				bboxes[..., 2] = height - bboxes[..., 4]
 				bboxes[..., 4] = bboxes[..., 2] + bboxes_height
 			elif self._box_format == "xywh":
-				bboxes[..., 2] = 1 - (bboxes[..., 2] + bboxes[..., 4])
+				bboxes[..., 2] = height - (bboxes[..., 2] + bboxes[..., 4])
 			elif self._box_format == "xcycwh":
-				bboxes[..., 2] = 1 - bboxes[..., 2]
+				bboxes[..., 2] = height - bboxes[..., 2]
 		return new_image, bboxes
 
 	def _brightness(self, image: Image.Image, bboxes: List[List[float]]) -> Tuple[Image.Image, List[List[float]]]:

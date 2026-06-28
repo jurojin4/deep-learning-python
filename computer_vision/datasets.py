@@ -84,10 +84,11 @@ class Dataset(dataset):
         self._data_aug = data_aug
         if data_aug:
             self._data_aug_factor = 2
-            self._dataugmentation = DataAugmentation(box_format=self._box_format, 
-                                                     brightness=0.25,
-                                                     contrast=randint(20, 200) / 100,
-                                                     saturation=randint(35, 200) / 100)
+            self._dataugmentation = DataAugmentation(box_normalized=self._dataset_normalized,
+                                                     box_format=self.dataset_box_format, 
+                                                     brightness=0.45,
+                                                     contrast=randint(80, 90) / 100,
+                                                     saturation=randint(75, 90) / 100)
             self._indexes = dict([(i, j) for i, j in zip(range(len(self._images_files), int(len(self._images_files) * self._data_aug_factor)), range(len(self._images_files)))])
 
     def _get_dataset(self, dataset_path: str, dataset_name: str, type_set: Literal["train", "validation"], **kwargs) -> Tuple[str, Dict[int, List[List[float | int]]], List[float], int, Dict[str, int], str, Literal["xyxy", "xywh", "xcycwh"], Literal["classification", "object_detection"]]:
@@ -254,7 +255,9 @@ class Dataset(dataset):
                 index = self._indexes[index]
                 _data_aug = True
 
-        image = Image.open(os.path.join(self._dataset_path, self._images_files[index])).resize(size=(self._width, self._height)).convert("RGB")
+        image = Image.open(os.path.join(self._dataset_path, self._images_files[index]))
+        width, height = image.size
+        image = image.resize(size=(self._width, self._height)).convert("RGB")
 
         if self._base10:
             idx = int(self._images_files[index].split(".")[0])
@@ -269,7 +272,7 @@ class Dataset(dataset):
             image_size = self._annotations["sizes"][idx]
 
             if _data_aug:
-                image, _bboxes = self._dataugmentation(image, _bboxes)
+                image, _bboxes = self._dataugmentation(image, _bboxes, width, height)
             else:
                 image = self._transformations(image)
 
@@ -516,3 +519,48 @@ def vocdetection(path: str, type_set: Literal["train", "validation"] = "train", 
                     weights[categories[label]] += 1
 
         return os.path.join(path, "pascalvoc2012/JPEGImages/"), annotations, weights, len(categories), categories, f"pascalvoc{year}", "xyxy", "object_detection", False
+    
+if __name__ == "__main__":
+    from torchvision.transforms import ToTensor
+    from torch.utils.data import DataLoader
+    from tqdm import tqdm
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    width, height = 448, 448
+    
+    trainset = Dataset(dataset_name="modified_coco2017",
+                                dataset_path="/home/otokonokage/Documents/github/dataset/computer_vision/", 
+                                width=width,
+                                height=height,
+                                transformations=Compose([ToTensor()]),
+                                model_normalized=True,
+                                box_format="xywh",
+                                type_set="train",
+                                data_aug=True)
+    
+    train_loader = DataLoader(dataset=trainset,
+                            batch_size=1,
+                            shuffle=True,
+                            num_workers=0,
+                            pin_memory=True,
+                            drop_last=True,
+                            collate_fn=collate_fn)
+    
+    loop = tqdm(train_loader, leave=True)
+
+    for x,y in loop:
+        fig, ax = plt.subplots(1, 1)
+        image, bboxes = x.permute(0, 2, 3, 1).detach().cpu().numpy().squeeze(0), y.detach().cpu().numpy()
+        for bbox in bboxes:
+            batch, confidence, x, y, w, h = bbox
+            rectangle = patches.Rectangle((x * width, y * height), w * width, h * height, edgecolor="blue", facecolor='none', alpha=1, linewidth=2)
+            ax.add_patch(rectangle)
+            
+        ax.imshow(image)
+        plt.show()
+        os.system("clear")
+
+        # probleme sur la data augme

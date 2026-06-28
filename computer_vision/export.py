@@ -58,14 +58,13 @@ class ONNXExport:
                 os.path.join(os.path.dirname(self.weights_path), "model_checkpoint.onnx"),
                 opset_version=18,
                 dynamo=False,                
-                training=torch.onnx.TrainingMode.EVAL,
                 do_constant_folding=True,
                 keep_initializers_as_inputs=False,
                 input_names=["input"],
                 output_names=["predictions"])
             
         self._ort_session = onnxruntime.InferenceSession(os.path.join(os.path.dirname(self.weights_path), "model_checkpoint.onnx"), providers=["CUDAExecutionProvider"])
-            
+
         self._testing_images(height, width, images_directory)
 
     def _testing_images(self, width: int, height: int, images_directory: str) -> None:
